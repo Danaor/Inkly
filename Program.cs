@@ -503,6 +503,7 @@ namespace Inkly
             overlayMenu.Items.Add("Pin snip - maximized  (P)", null, delegate { DoPin(false); });
             overlayMenu.Items.Add("Pin snip - minimized  (O)", null, delegate { DoPin(true); });
             overlayMenu.Items.Add("Toggle eraser", null, delegate { if (canvas != null) canvas.ToggleEraser(); });
+            overlayMenu.Items.Add("Toggle highlighter", null, delegate { settings.Highlighter = !settings.Highlighter; });
             overlayMenu.Items.Add("Undo", null, delegate { if (canvas != null) canvas.Undo(); });
             overlayMenu.Items.Add("Clear", null, delegate { if (canvas != null) canvas.ClearAll(); });
             overlayMenu.Items.Add("Reset zoom", null, delegate { if (canvas != null) canvas.ResetZoom(); });
