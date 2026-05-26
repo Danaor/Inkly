@@ -1,0 +1,5 @@
+# Build output and local settings
+Inkly.exe
+Inkly.ini
+*.pdb
+*.user
