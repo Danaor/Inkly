@@ -23,13 +23,22 @@ namespace Inkly
     {
         [DllImport("user32.dll")] static extern bool SetProcessDPIAware();
 
+        static System.Threading.Mutex _mtx;
+
         [STAThread]
         static void Main()
         {
+            // Single-instance guard: if Inkly is already running, exit immediately. Prevents
+            // multiple copies (autostart + manual launches) from fighting over the Ctrl+1 hotkey.
+            bool createdNew;
+            _mtx = new System.Threading.Mutex(true, @"Local\Inkly_SingleInstance_v1", out createdNew);
+            if (!createdNew) return;
+
             try { SetProcessDPIAware(); } catch { }
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
             Application.Run(new TrayAppContext());
+            GC.KeepAlive(_mtx);
         }
     }
 
@@ -361,6 +370,8 @@ namespace Inkly
         NotifyIcon tray;
         OverlayForm overlay;
         HotkeyWindow hotkeyWin;
+        System.Windows.Forms.Timer hotkeyWatch;
+        bool hotkeyOk;
         List<SnapshotForm> snaps = new List<SnapshotForm>();
 
         public TrayAppContext()
@@ -381,7 +392,13 @@ namespace Inkly
             // stable across app switches (a low-level hook can get silently dropped by Windows).
             hotkeyWin = new HotkeyWindow();
             hotkeyWin.HotkeyPressed += delegate(int id) { if (id == ID_DRAW) OnCtrl1(); };
-            RegisterHotKey(hotkeyWin.Handle, ID_DRAW, MOD_CONTROL, VK_1);
+            TryRegisterHotkey();
+            // Self-heal: if Ctrl+1 was momentarily held by something else at startup (or
+            // registration otherwise failed), keep retrying until Inkly actually owns the hotkey.
+            hotkeyWatch = new System.Windows.Forms.Timer();
+            hotkeyWatch.Interval = 3000;
+            hotkeyWatch.Tick += delegate { if (!hotkeyOk) TryRegisterHotkey(); };
+            hotkeyWatch.Start();
 
             tray = new NotifyIcon();
             tray.Icon = MakeIcon(settings.PenColor);
@@ -410,6 +427,12 @@ namespace Inkly
             menu.Opening += delegate { hiItem.Checked = settings.Highlighter; };
             tray.ContextMenuStrip = menu;
             tray.DoubleClick += delegate { overlay.Toggle(); };
+        }
+
+        void TryRegisterHotkey()
+        {
+            if (hotkeyOk) return;
+            hotkeyOk = RegisterHotKey(hotkeyWin.Handle, ID_DRAW, MOD_CONTROL, VK_1);
         }
 
         void OnCtrl1()
@@ -462,6 +485,7 @@ namespace Inkly
 
         void ExitApp()
         {
+            try { if (hotkeyWatch != null) hotkeyWatch.Stop(); } catch { }
             try { UnregisterHotKey(hotkeyWin.Handle, ID_DRAW); } catch { }
             if (tray != null) { tray.Visible = false; tray.Dispose(); }
             if (overlay != null) overlay.Dispose();
