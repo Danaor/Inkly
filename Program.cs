@@ -8,7 +8,7 @@ using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
 // Inkly - minimal, toolbar-free screen annotation tool.
-//   Ctrl+1  : start drawing on the screen under the cursor. Press again to cycle the color:
+//   Ctrl+Q  : start drawing on the screen under the cursor. Press again to cycle the color:
 //             black -> red -> yellow -> green -> blue -> (back to black).
 //   while drawing:
 //     left-drag   : draw        wheel : thickness        Ctrl+wheel : zoom        middle-drag : pan
@@ -356,7 +356,7 @@ namespace Inkly
     {
         const int ID_DRAW = 0xA11;
         const uint MOD_CONTROL = 0x0002;
-        const uint VK_1 = 0x31;
+        const uint VK_DRAW = 0x51; // Q  (chosen to avoid Claude Desktop's global Ctrl+1)
 
         [DllImport("user32.dll")] static extern bool RegisterHotKey(IntPtr hWnd, int id, uint fsModifiers, uint vk);
         [DllImport("user32.dll")] static extern bool UnregisterHotKey(IntPtr hWnd, int id);
@@ -391,7 +391,7 @@ namespace Inkly
             // Ctrl+1 is the only keyboard shortcut, and it's a system-wide RegisterHotKey, which is
             // stable across app switches (a low-level hook can get silently dropped by Windows).
             hotkeyWin = new HotkeyWindow();
-            hotkeyWin.HotkeyPressed += delegate(int id) { if (id == ID_DRAW) OnCtrl1(); };
+            hotkeyWin.HotkeyPressed += delegate(int id) { if (id == ID_DRAW) OnDrawHotkey(); };
             TryRegisterHotkey();
             // Self-heal: if Ctrl+1 was momentarily held by something else at startup (or
             // registration otherwise failed), keep retrying until Inkly actually owns the hotkey.
@@ -402,7 +402,7 @@ namespace Inkly
 
             tray = new NotifyIcon();
             tray.Icon = MakeIcon(settings.PenColor);
-            tray.Text = "Inkly  -  Ctrl+1 to draw / cycle color";
+            tray.Text = "Inkly  -  Ctrl+Q to draw / cycle color";
             tray.Visible = true;
 
             ContextMenuStrip menu = new ContextMenuStrip();
@@ -422,7 +422,7 @@ namespace Inkly
             }
             menu.Items.Add(widthItem);
             menu.Items.Add(new ToolStripSeparator());
-            menu.Items.Add("Ctrl+1 = draw / cycle color · right-click while drawing for more", null, delegate { }).Enabled = false;
+            menu.Items.Add("Ctrl+Q = draw / cycle color · right-click while drawing for more", null, delegate { }).Enabled = false;
             menu.Items.Add("Exit", null, delegate { ExitApp(); });
             menu.Opening += delegate { hiItem.Checked = settings.Highlighter; };
             tray.ContextMenuStrip = menu;
@@ -432,10 +432,10 @@ namespace Inkly
         void TryRegisterHotkey()
         {
             if (hotkeyOk) return;
-            hotkeyOk = RegisterHotKey(hotkeyWin.Handle, ID_DRAW, MOD_CONTROL, VK_1);
+            hotkeyOk = RegisterHotKey(hotkeyWin.Handle, ID_DRAW, MOD_CONTROL, VK_DRAW);
         }
 
-        void OnCtrl1()
+        void OnDrawHotkey()
         {
             if (!overlay.IsActive)
             {

@@ -6,7 +6,7 @@ Inkly lives in the system tray — its icon shows the current pen color.
 
 ## Install
 1. Download `Inkly.exe` from the [Releases](https://github.com/Danaor/Inkly/releases) page.
-2. Run it. It sits in the system tray. Press **Ctrl+1** to start drawing.
+2. Run it. It sits in the system tray. Press **Ctrl+Q** to start drawing.
 
 Requires Windows 10/11 (uses the built-in .NET Framework 4.x — nothing else to install).
 
@@ -14,7 +14,7 @@ Requires Windows 10/11 (uses the built-in .NET Framework 4.x — nothing else to
 
 | Action | Key / mouse |
 |---|---|
-| Start drawing · cycle color (black → red → yellow → green → blue) | **Ctrl+1** |
+| Start drawing · cycle color (black → red → yellow → green → blue) | **Ctrl+Q** |
 | Draw | left-drag |
 | Thickness | mouse wheel |
 | Zoom (centered on cursor) · pan | Ctrl + wheel · middle-drag |
