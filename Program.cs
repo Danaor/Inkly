@@ -22,19 +22,27 @@ namespace Inkly
     static class Program
     {
         [DllImport("user32.dll")] static extern bool SetProcessDPIAware();
+        [DllImport("user32.dll")] static extern bool SetProcessDpiAwarenessContext(IntPtr value);
+        static readonly IntPtr DPI_PER_MONITOR_AWARE_V2 = (IntPtr)(-4);
 
         static System.Threading.Mutex _mtx;
 
         [STAThread]
         static void Main()
         {
-            // Single-instance guard: if Inkly is already running, exit immediately. Prevents
-            // multiple copies (autostart + manual launches) from fighting over the Ctrl+1 hotkey.
+            // Per-Monitor-V2 DPI awareness, set before any window/Graphics exists. Without it a
+            // system-DPI-aware process gets virtualized (wrong) coordinates on any monitor whose
+            // scaling differs from the primary - which made screen capture land off-screen (black)
+            // on a 100% secondary while the 150% primary worked. Falls back on older Windows.
+            try { if (!SetProcessDpiAwarenessContext(DPI_PER_MONITOR_AWARE_V2)) SetProcessDPIAware(); }
+            catch { try { SetProcessDPIAware(); } catch { } }
+
+            // Single-instance guard: if Inkly is already running, exit immediately. Prevents multiple
+            // copies (autostart + manual launches) from fighting over the global draw hotkey.
             bool createdNew;
             _mtx = new System.Threading.Mutex(true, @"Local\Inkly_SingleInstance_v1", out createdNew);
             if (!createdNew) return;
 
-            try { SetProcessDPIAware(); } catch { }
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
             Application.Run(new TrayAppContext());
@@ -522,6 +530,7 @@ namespace Inkly
             StartPosition = FormStartPosition.Manual;
             BackColor = Color.Black;
             Text = "Inkly";
+            AutoScaleMode = AutoScaleMode.None; // we place/size in physical pixels under PerMonitorV2
 
             overlayMenu = new ContextMenuStrip();
             overlayMenu.Items.Add("Pin snip - maximized  (P)", null, delegate { DoPin(false); });
@@ -640,6 +649,7 @@ namespace Inkly
             StartPosition = FormStartPosition.CenterScreen;
             KeyPreview = true;
             MinimumSize = new Size(240, 180);
+            AutoScaleMode = AutoScaleMode.None;
 
             Rectangle wa = Screen.PrimaryScreen.WorkingArea;
             float sc = Math.Min(wa.Width * 0.6f / bg.Width, wa.Height * 0.6f / bg.Height);
